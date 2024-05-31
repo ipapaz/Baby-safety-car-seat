@@ -1,1 +1,74 @@
+// C++ code
+//
 
+#include <SoftwareSerial.h>
+const int RXPin = 12, TXPin = 10;    // 12 Arduino RX- TX Bluetooth, 10 Arduino TX- RX Bluetooth
+SoftwareSerial  BTserial(RXPin, TXPin);
+bool text = true;
+String SMStext="Alarm, baby in car";  // Το μήνυμα που στέλνεται
+String SMSnumber="697*******";        // Ο αριθμός του τηλεφώνου όπου γίνεται η επανεκπομπή
+
+// *************************************************************
+
+int temperature = 0;
+int porta = 0;
+
+// ************************************************************
+
+void setup()
+{
+  pinMode(A0, INPUT); // Sensor Temp36
+  pinMode(3, OUTPUT); // Ρελέ που ενεργοποιεί τους ανεμιστήρες
+  pinMode(5, OUTPUT); // Κόκκινο LED
+  pinMode(7, OUTPUT); // Buzzer
+  pinMode(8, OUTPUT); // Voice Playback module
+  pinMode(9, INPUT);  // Μαγνητική επαφή στην πόρτα του αυτοκινήτου
+  Serial.begin(9600); // Επικοινωνία με τον υπολογιστή
+  BTserial.begin(9600); // Initialize the Bluetooth Module
+
+  digitalWrite(3, LOW);
+  digitalWrite(5, LOW);
+  digitalWrite(7, LOW);
+}
+
+void loop()
+{
+  temperature = (-40 + 0.488155 * (analogRead(A0) - 20));
+  Serial.println(temperature);
+  
+  if (temperature >= 27) {
+    digitalWrite(3, HIGH);
+    digitalWrite(5, HIGH);
+    tone(7, 523, 1000);        // play tone 60 (C5 = 523 Hz)
+    tone(7, 16744, 1000);     // play tone 120 (C10 = 16744 Hz)
+    tone(7, 5274, 1000);      // play tone 100 (E8 = 5274 Hz)
+    if(text){
+        BTserial.print(SMSnumber+"/"+SMStext);
+        Serial.println("message sent");
+        text=false;}
+    delay(1000);              // Wait for 1000 millisecond(s)  
+  } else {
+    if (temperature <= 10) {
+      digitalWrite(5, HIGH);
+      digitalWrite(7, HIGH);
+      tone(7, 523, 1000); // play tone 60 (C5 = 523 Hz)
+      tone(7, 16744, 1000); // play tone 120 (C10 = 16744 Hz)
+      tone(7, 5274, 1000); // play tone 100 (E8 = 5274 Hz)
+      if(text){
+        BTserial.print(SMSnumber+"/"+SMStext);
+        Serial.println("message sent");
+        text=false;}
+      delay(1000); // Wait for 1000 millisecond(s)
+    } else {
+      digitalWrite(3, LOW);
+      digitalWrite(5, LOW);
+      digitalWrite(7, LOW);
+      text=true;
+    }
+  }
+  porta = digitalRead(9);
+  if (porta == 0) {
+    digitalWrite(8, LOW);
+    delay(500); // Wait for 500 millisecond(s)
+  } else { digitalWrite(8, HIGH); }
+}
